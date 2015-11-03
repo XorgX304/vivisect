@@ -1775,6 +1775,13 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         self._fireEvent(VWE_ADDLOCATION, ltup)
         return ltup
 
+    def delLocation(self, va, size, ltype, tinfo=None):
+        """
+        Removes a location tuple.
+        """
+        ltup = (va, size, ltype, tinfo)
+        self._fireEvent(VWE_DELLOCATION, ltup)
+
     def getLocations(self, ltype=None, linfo=None):
         """
         Return a list of location objects from the workspace

@@ -79,6 +79,7 @@ class ArchitectureModule:
         self._arch_id = getArchByName(archname)
         self._arch_name = archname
         self._arch_maxinst = maxinst
+        self._arch_badopbytes = ['\x00\x00\x00\x00\x00']
 
     def getArchId(self):
         '''
@@ -140,6 +141,22 @@ class ArchitectureModule:
         allr = [rname for rname in regctx.getRegisterNames()]
         return [ ('all', allr), ]
 
+    def archGetBadOps(self, byteslist=None):
+        '''
+        Returns a list of opcodes which are indicators of wrong disassembly.
+        byteslist is None to use the architecture default, or can be a custom list.
+        '''
+        if byteslist == None:
+            byteslist = self._arch_badopbytes
+
+        badops = []
+        for badbytes in byteslist:
+            try:
+                self.badops.append(self.archParseOpcode(badbytes))
+            except:
+                pass
+
+        return badops
     def getEmulator(self):
         """
         Return a default instance of an emulator for the given arch.
@@ -536,6 +553,7 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
     """
     def __init__(self, archmod=None):
 
+        self.metadata = {}
         e_mem.MemoryObject.__init__(self, arch=archmod._arch_id)
         e_reg.RegisterContext.__init__(self)
 
@@ -577,6 +595,15 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
         if not self._emu_opts.has_key(opt):
             raise Exception('Unknown Emu Opt: %s' % opt)
         return self._emu_opts.get(opt)
+
+    def getMeta(self, name, default=None):
+        return self.metadata.get(name, default)
+
+    def setMeta(self, name, value):
+        """
+        Set a meta key,value pair for this workspace.
+        """
+        self.metadata[name] = value
 
     def getArchModule(self):
         raise Exception('Emulators *must* implement getArchModule()!')

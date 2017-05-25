@@ -532,6 +532,18 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
     #def _loadImportApi(self, apidict):
         #self._imp_api.update( apidict )
 
+    def getEndian(self):
+        return self.bigend
+
+    def setEndian(self, endian):
+        self.bigend = endian
+        for arch in self.imem_archs:
+            arch.setEndian(self.bigend)
+
+        if self.arch != None:
+            self.arch.setEndian(self.bigend)
+
+
 #################################################################
 #
 #  setMeta key callbacks
@@ -551,7 +563,7 @@ class VivWorkspaceCore(object,viv_impapi.ImportApi):
             self.setMeta('DefaultCall', defcall)
 
     def _mcb_bigend(self, name, value):
-        self.bigend = bool(value)
+        self.setEndian(bool(value))
 
     def _mcb_Platform(self, name, value):
         # Default calling convention for platform

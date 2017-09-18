@@ -157,6 +157,26 @@ class ArchitectureModule:
         allr = [rname for rname in regctx.getRegisterNames()]
         return [ ('all', allr), ]
 
+    def archModifyFuncAddr(self, va, info):
+        '''
+        Can modify the VA and context based on architecture-specific info.
+        Default: return the same va, info
+
+        This hook allows an architecture to correct VA and Architecture, such 
+        as is necessary for ARM/Thumb.
+        '''
+        return va, {}
+
+    def archModifyXrefAddr(self, tova, reftype, rflags):
+        '''
+        Returns a potentially modified set of (tova, reftype, rflags).
+        Default: return the same tova, reftype, rflags
+
+        This hook allows an architecture to modify an Xref before it's set, 
+        which can be helpful for ARM/Thumb.
+        '''
+        return tova, reftype, rflags
+
     def archGetBadOps(self, byteslist=None):
         '''
         Returns a list of opcodes which are indicators of wrong disassembly.
@@ -782,7 +802,8 @@ class Emulator(e_reg.RegisterContext, e_mem.MemoryObject):
     def writeMemValue(self, addr, value, size):
         #FIXME change this (and all uses of it) to passing in format...
         #FIXME: Remove byte check and possibly half-word check.  (possibly all but word?)
-        bytes = e_bits.buildbytes(value, size, self.getEndian())
+        mask = e_bits.u_maxes[size]
+        bytes = e_bits.buildbytes(value & mask, size, self.getEndian())
 
         self.writeMemory(addr, bytes)
 

@@ -18,6 +18,10 @@ import envi.symstore.symcache as e_symcache
 
 from vivisect.const import *
 
+
+logger = logging.getLogger(__name__)
+
+
 # PE Machine field values
 #0x14d   Intel i860
 #0x14c   Intel I386 (same ID used for 486 and 586)
@@ -192,6 +196,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
             deadvas.append(d.VirtualAddress)
 
     for idx, sec in enumerate(pe.sections):
+        logger.debug('loading section number %d', idx)
         mapflags = 0
 
         chars = sec.Characteristics
@@ -275,6 +280,7 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
             secoff = pe.rvaToOffset(secrva)
             secbytes = pe.readAtOffset(secoff, readsize)
             secbytes += "\x00" * plen
+            logger.debug('mapping section: %d %s', idx, secname)
             vw.addMemoryMap(secbase, mapflags, fname, secbytes)
             vw.addSegment(secbase, len(secbytes), secname, fname)
 

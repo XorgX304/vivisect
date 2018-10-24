@@ -1,21 +1,18 @@
-os:
-    - linux
-
-env:
-    - VIVTESTFILES=/tmp/vivtestfiles
-
-sudo: required
-dist: trusty
-
 language: python
 
-python:
-    - "2.7_with_system_site_packages"
+matrix:
+    include:
+        - os: linux
+          sudo: required
+          python: 2.7
+
+        # travis doesn't support py2.7: https://github.com/travis-ci/travis-ci/issues/2312
 
 install:
-    - "travis_retry sudo apt-get update"
+    - pip install pyinstaller pep8
     - git clone https://github.com/vivisect/vivtestfiles.git /tmp/vivtestfiles
-    - "travis_retry sudo apt-get -qq install libfreetype6-dev liblcms2-dev python-qt4 ghostscript libffi-dev libjpeg-turbo-progs cmake imagemagick"
-    - pip install msgpack-python
+    - pip install -e .
 
-script: py.test
+script:
+    - find . -name \*.py -exec pep8 --ignore=E501 {} \;
+    - py.test -v

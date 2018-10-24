@@ -641,12 +641,23 @@ class VivCodeFlowContext(e_codeflow.CodeFlowContext):
 
     # NOTE: self._mem is the viv workspace...
     def _cb_opcode(self, va, op, branches):
-
+        '''
+        Callback for an opcode that is made during code flow analysis.
+        '''
         loc = self._mem.getLocation(va)
         if loc  == None: 
 
-            # dont code flow through import calls
-            branches = [br for br in branches if not self._mem.isLocType(br[0],LOC_IMPORT)]
+            # Filter out branches to an import function,
+            # unless the function is a no-return API.
+            btmp = []
+            for br in branches:
+                if not self._mem.isLocType(br[0], LOC_IMPORT):
+                    btmp.append(br)
+                    continue
+                brtuple = self._mem.getLocation(br[0])
+                if self._mem.getMeta('NoReturnApis').get(brtuple[3].lower()):
+                    btmp.append(br)
+            branches = btmp
 
             self._mem.makeOpcode(op.va, op=op)
             return branches

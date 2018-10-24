@@ -149,8 +149,11 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
     subsys_minver = pe.IMAGE_NT_HEADERS.OptionalHeader.MinorSubsystemVersion
 
     secrem = len(header) % secalign
-    if secrem != 0:
-        header += "\x00" * (secalign - secrem)
+    # Lines below will extend the header to one page.  In reality, some
+    # samples put code after the header but in the same page, so it is better
+    # to stick with header_size.  See FLARE-662.
+    #if secrem != 0:
+    #    header += "\x00" * (secalign - secrem)
 
     vw.addMemoryMap(baseaddr, e_mem.MM_READ, fname, header)
     vw.addSegment(baseaddr, len(header), "PE_Header", fname)
@@ -277,7 +280,11 @@ def loadPeIntoWorkspace(vw, pe, filename=None):
             readsize = sec.SizeOfRawData if sec.SizeOfRawData < sec.VirtualSize else sec.VirtualSize
 
             secoff = pe.rvaToOffset(secrva)
-            secbytes = pe.readAtOffset(secoff, readsize)
+            if secname and (secname == '.data'):
+                # Allow truncated .data segment.
+                secbytes = pe.readAtOffset(secoff, readsize, shortok=True)
+            else:
+                secbytes = pe.readAtOffset(secoff, readsize)
             secbytes += "\x00" * plen
             logger.debug('mapping section: %d %s', idx, secname)
             vw.addMemoryMap(secbase, mapflags, fname, secbytes)

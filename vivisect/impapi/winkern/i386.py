@@ -1,3 +1,8 @@
+# APIs for Windows 32-bit ntoskrnl library.
+# Format:  retval, rettype, callconv, exactname, arglist(type, name)
+#          arglist type is one of ['int', 'void *']
+#          arglist name is one of [None, 'funcptr', 'obj', 'ptr']
+
 apitypes = {
 }
 

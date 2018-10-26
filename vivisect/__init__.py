@@ -673,8 +673,22 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         return stats
 
     def printDiscoveredStats(self):
-        disc, undisc = self.getDiscoveredInfo()
+        ( disc, 
+            undisc, 
+            numXrefs, 
+            numLocs, 
+            numFuncs, 
+            numBlocks, 
+            numOps, 
+            numUnis, 
+            numStrings, 
+            numNumbers, 
+            numPointers, 
+            numVtables ) = self.getDiscoveredInfo()
+
         self.vprint("Percentage of discovered executable surface area: %.1f%% (%s / %s)" % (disc*100.0/(disc+undisc), disc, disc+undisc))
+        self.vprint("   Xrefs/Blocks/Funcs:                             (%s / %s / %s)" % (numXrefs, numBlocks, numFuncs))
+        self.vprint("   Locs,  Ops/Strings/Unicode/Nums/Ptrs/Vtables:   (%s:  %s / %s / %s / %s / %s / %s)" % (numLocs, numOps, numStrings, numUnis, numNumbers, numPointers, numVtables))
 
     def getDiscoveredInfo(self):
         """
@@ -695,7 +709,19 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 else:
                     off += loc[L_SIZE]
                     disc += loc[L_SIZE]
-        return disc, undisc
+
+        numXrefs = len(self.getXrefs())
+        numLocs = len(self.getLocations())
+        numFuncs = len(self.getFunctions())
+        numBlocks = len(self.getCodeBlocks())
+        numOps = len(self.getLocations(LOC_OP))
+        numUnis = len(self.getLocations(LOC_UNI))
+        numStrings = len(self.getLocations(LOC_STRING))
+        numNumbers = len(self.getLocations(LOC_NUMBER))
+        numPointers = len(self.getLocations(LOC_POINTER))
+        numVtables = len(self.getLocations(LOC_VFTABLE))
+
+        return disc, undisc, numXrefs, numLocs, numFuncs, numBlocks, numOps, numUnis, numStrings, numNumbers, numPointers, numVtables
 
     def getImports(self):
         """
@@ -788,9 +814,15 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
         plen = 0 # pascal string length
         dlen = 0 # delphi string length
         if self.isReadable(va-4):
-            plen = self.readMemValue(va-2, 2) # pascal string length
-            dlen = self.readMemValue(va-4, 4) # delphi string length
-
+            # Search for strings compiled with a header, unless the possible
+            # header is in a different memory map.
+            for mapva, mapsize, mperm, mname in self.getMemoryMaps():
+                if (mapva <= va-2) and (va-2 < mapva + mapsize):
+                    if (va < mapva + mapsize):
+                        plen = self.readMemValue(va-2, 2)
+                if (mapva <= va-4) and (va-4 < mapva + mapsize):
+                    if (va < mapva + mapsize):
+                        dlen = self.readMemValue(va-4, 4)
         offset, bytes = self.getByteDef(va)
         maxlen = len(bytes) - offset
         count = 0
@@ -802,7 +834,7 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
                 loc = self.getLocation(va+count)
                 if loc != None:
                     if loc[L_LTYPE] == LOC_STRING:
-                        return loc[L_VA] - (va + count) + loc[L_SIZE]
+                        return loc[L_VA] - (va + count) + loc[L_SIZE] + 1
                     return -1
 
             c = bytes[offset+count]
@@ -843,9 +875,10 @@ class VivWorkspace(e_mem.MemoryObject, viv_base.VivWorkspaceCore):
             # already set as a location.
             if (count > 0):
                 loc = self.getLocation(va+count)
-                if loc and loc[L_LTYPE] == LOC_UNI:
-                    return loc[L_VA] - (va + count) + loc[L_SIZE]
-                return -1
+                if loc != None:
+                    if loc[L_LTYPE] == LOC_UNI:
+                        return loc[L_VA] - (va + count) + loc[L_SIZE] + 2
+                    return -1
 
             c0 = bytes[offset+count]
             if offset+count+1 >= len(bytes):

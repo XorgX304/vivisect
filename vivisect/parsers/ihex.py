@@ -1,7 +1,7 @@
 import envi
 import vivisect
 import vstruct.defs.ihex as v_ihex
-from .utils import md5File
+import vivisect.parsers as v_parsers
 
 from vivisect.const import *
 
@@ -11,7 +11,7 @@ archcalls = {
     'arm':'armcall',
 }
 
-def parseFile(vw, filename):
+def parseFile(vw, filename, baseaddr=None):
 
     arch = vw.config.viv.parsers.ihex.arch
     if not arch:
@@ -24,7 +24,8 @@ def parseFile(vw, filename):
     vw.setMeta('Format','ihex')
     vw.setMeta('DefaultCall', archcalls.get(arch,'unknown'))
 
-    fname = vw.addFile(filename, 0, md5File(filename))
+    # might we make use of baseaddr, even though it's an IHEX?  for now, no.
+    fname = vw.addFile(filename, 0, v_parsers.md5File(filename))
 
     ihex = v_ihex.IHexFile()
     ihex.vsParse( file(filename, 'rb').read() )

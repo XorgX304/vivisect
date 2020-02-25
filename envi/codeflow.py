@@ -7,6 +7,8 @@ import traceback
 import envi
 import envi.memory as e_mem
 
+logger = logging.getLogger(__name__)
+
 class CodeFlowContext(object):
 
     '''
@@ -154,11 +156,11 @@ class CodeFlowContext(object):
 
             try:
                 op = self._mem.parseOpcode(va, arch=arch)
-            except envi.InvalidInstruction, e:
-                logging.getLogger("envi/codeflow.addCodeFlow").warning('parseOpcode error at 0x%.8x: %s', va,e)
-                continue 
-            except Exception, e:
-                logging.getLogger("envi/codeflow.addCodeFlow").warning('parseOpcode error at 0x%.8x: %s', va,e)
+            except envi.InvalidInstruction as e:
+                logger.warn('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s',va, startva, e)
+                continue
+            except Exception as e:
+                logger.warn('parseOpcode error at 0x%.8x (addCodeFlow(0x%x)): %s', va, startva, e)
                 continue
 
             branches = op.getBranches()
@@ -168,7 +170,7 @@ class CodeFlowContext(object):
             while len(branches):
 
                 bva, bflags = branches.pop()
-                                
+
                 # look for dynamic branches (ie. branches which don't have a known target).  assume at least one branch
                 if bva == None:
                     self._cb_dynamic_branch(va, op, bflags, branches)
@@ -179,22 +181,18 @@ class CodeFlowContext(object):
                 try:
                     # Handle a table branch by adding more branches...
                     ptrfmt = ('<P', '>P')[self._mem.getEndian()]
+                    # most if not all of the work to construct jump tables is done in makeOpcode
                     if bflags & envi.BR_TABLE:
                         if self._cf_exptable:
                             ptrbase = bva
-                            bdest = self._mem.readMemoryFormat(ptrbase, ptrfmt)[0]
-                            tabdone = {}
-                            while self._mem.isValidPointer(bdest):
-
-                                if self._cb_branchtable(bva, ptrbase, bdest) == False:
+                            tabdone = set()
+                            for bdest in self._mem.iterJumpTable(ptrbase):
+                                if not self._cb_branchtable(bva, ptrbase, bdest):
                                     break
-
-                                if not tabdone.get(bdest):
-                                    tabdone[bdest] = True
+                                if bdest not in tabdone:
+                                    tabdone.add(bdest)
                                     branches.append((bdest, envi.BR_COND))
-
                                 ptrbase += self._mem.psize
-                                bdest = self._mem.readMemoryFormat(ptrbase, ptrfmt)[0]
                         continue
 
                     if bflags & envi.BR_DEREF:
@@ -220,6 +218,9 @@ class CodeFlowContext(object):
                         if bva != nextva: # NOTE: avoid call 0 constructs
 
                             # Now we decend so we do deepest func callbacks first!
+                            # This is not necessarily true. We don't actually recurse since bva
+                            # typically (save for derefs) is being added to self._cf_blocks above
+                            # and nobody but drefs changes what bva is
                             if self._cf_recurse:
                                 if bva in self._cf_blocks:
                                     # the function that we want to make prodcedural
@@ -265,7 +266,7 @@ class CodeFlowContext(object):
         # Architecture gets to decide on actual final VA and Architecture (ARM/THUMB/etc...)
         info = { 'arch' : arch }
         va, info = self._mem.arch.archModifyFuncAddr(va, info)
-        arch = info.get('arch', envi.ARCH_DEFAULT)
+        arch = info.get('arch', arch)
 
         # Check if this is already a known function.
         if self._funcs.get(va) != None:
@@ -275,13 +276,21 @@ class CodeFlowContext(object):
         self._funcs[va] = True
         calls_from = self.addCodeFlow(va, arch=arch)
         self._fcalls[va] = calls_from
-        
+
         # Finally, notify the callback of a new function
         self._cb_function(va, {'CallsFrom':calls_from})
 
+    def flushFunction(self, fva):
+        '''
+        Codeflow context maintains a list of identified functions, to avoid
+        analyzing the same function twice.  If a function is misidentified
+        flushFunction() is used to clear that function from the tracked _funcs
+        '''
+        self._funcs[fva] = None
+
     def addDynamicBranchHandler(self, cb):
         '''
-        Add a callback handler for dynamic branches the code-flow resolver 
+        Add a callback handler for dynamic branches the code-flow resolver
         doesn't know what to do with
         '''
         if cb in self._dynamic_branch_handlers:

@@ -1,5 +1,7 @@
-import envi
 from vivisect.const import *
+
+
+STRTYPES = (LOC_UNI, LOC_STRING)
 
 
 def analyze(vw):
@@ -14,13 +16,18 @@ def analyze(vw):
 
     for fva in vw.getFunctions():
         for va, size, funcva in vw.getFunctionBlocks(fva):
-            maxva = va+size
+            maxva = va + size
             while va < maxva:
                 op = vw.parseOpcode(va)
                 for o in op.opers:
                     if o.isDeref():
                         continue
                     ref = o.getOperValue(op, None)
+
+                    # we've already processed this one
+                    loc = vw.getLocation(ref)
+                    if loc is not None and loc[L_LTYPE] in STRTYPES:
+                        continue
 
                     # Candidates will be listed with the Xrefs thanks to
                     # logic in makeOpcode().

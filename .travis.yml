@@ -1,16 +1,22 @@
+os:
+    - linux
+
+env:
+    - VIVTESTFILES=/tmp/vivtestfiles
+
+sudo: required
+dist: bionic
+
 language: python
 
-matrix:
-    include:
-        - os: linux
-          sudo: required
-          python: 2.7
-
-        # travis doesn't support py2.7: https://github.com/travis-ci/travis-ci/issues/2312
+python:
+    - "2.7"
 
 install:
     - pip install pyinstaller pep8
     - git clone https://github.com/vivisect/vivtestfiles.git /tmp/vivtestfiles
+    - "travis_retry sudo apt-get -qq install libfreetype6-dev liblcms2-dev python-qt4 ghostscript libffi-dev libjpeg-turbo-progs cmake imagemagick"
+    - pip install msgpack-python cxxfilt
     - pip install -e .
 
 script:

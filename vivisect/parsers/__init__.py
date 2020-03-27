@@ -27,14 +27,15 @@ def getParserModule(fmt):
     # wb: this importing by incomplete package doesn't seem like a
     #  good idea. but, this works with pyinstaller
     if fmt == "pe":
-        import pe
-        return pe
+        # don't use relative import for `pe` on a case-insensitive file system, WSL
+        import parse_pe
+        return parse_pe
     elif fmt == "blob":
         import blob
         return blob
     elif fmt == "elf":
-        import elf
-        return elf
+        import parse_elf
+        return parse_elf
     elif fmt == "ihex":
         import ihex
         return ihex

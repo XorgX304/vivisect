@@ -17,31 +17,30 @@ import struct
 
 import vstruct.defs.macho as vs_macho
 
-from .utils import md5File
-from .utils import md5Bytes
-from .utils import guessFormat
-from .utils import guessFormatFilename
+from vivisect.parsers.utils import md5File
+from vivisect.parsers.utils import md5Bytes
+from vivisect.parsers.utils import guessFormat
+from vivisect.parsers.utils import guessFormatFilename
 
 
 def getParserModule(fmt):
-    # wb: this importing by incomplete package doesn't seem like a
-    #  good idea. but, this works with pyinstaller
+    # wb: we use the import statement here so that pyinstaller
+    # will pick up the potential dependency.
     if fmt == "pe":
-        # don't use relative import for `pe` on a case-insensitive file system, WSL
-        import parse_pe
-        return parse_pe
+        import  vivisect.parsers.parse_pe
+        return vivisect.parsers.parse_pe
     elif fmt == "blob":
-        import blob
-        return blob
+        import vivisect.parsers.blob
+        return vivisect.parsers.blob
     elif fmt == "elf":
-        import parse_elf
-        return parse_elf
+        import vivisect.parsers.elf
+        return vivisect.parsers.elf
     elif fmt == "ihex":
-        import ihex
-        return ihex
+        import vivisect.parsers.ihex
+        return vivisect.parsers.ihex
     elif fmt == "macho":
-        import macho
-        return macho
+        import vivisect.parsers.macho
+        return vivisect.parsers.macho
 
     mname = "%s" % fmt
     mod = sys.modules.get(mname)

@@ -3,8 +3,8 @@
 #          arglist type is one of ['int', 'void *']
 #          arglist name is one of [None, 'funcptr', 'obj', 'ptr']
 
-apitypes = {
-}
+import vivisect.impapi.windows.i386 as v_w_i386
+apitypes = dict(v_w_i386.apitypes)
 
 api = {
 

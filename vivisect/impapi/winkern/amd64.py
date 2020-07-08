@@ -4,23 +4,10 @@
 #          arglist type is one of ['int', 'void *']
 #          arglist name is one of [None, 'funcptr', 'obj', 'ptr']
 
-# List the normalized name of any 32-bit functions to omit.
-api_32_omits = []
+import vivisect.impapi.winkern.i386 as v_k_i386
 
-# Define any functions specific to 64-bit.
-api_64_adds = {
-    }
+apitypes = dict(v_k_i386.apitypes)
 
-
-# Build from the 32-bit API, skipping omits, changing the calling convention,
-# and adding any specific 64-bit functions.
-apitypes = {}
 api = {}
-
-import vivisect.impapi.winkern.i386 as m32
-for name in m32.api.iterkeys():
-    if name in api_32_omits:
-        continue
-    (rtype,rname,cconv,cname,cargs) = m32.api[name]
-    api[name] = (rtype, rname, 'msx64call', cname, cargs)
-api.update(api_64_adds)
+for normname, (rtype, rname, cconv, cname, cargs) in v_k_i386.api.items():
+    api[normname] = (rtype, rname, 'msx64call', cname, cargs)

@@ -43,6 +43,6 @@ setup(
         'Topic :: Security',
         'Topic :: Software Development :: Debuggers',
         'Topic :: Software Development :: Disassemblers',
-    ]
+    ],
     python_requires='<3',
 )

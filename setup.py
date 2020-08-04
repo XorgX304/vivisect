@@ -20,10 +20,6 @@ setup(
     package_data={
         '': ['*.dll', '*.dylib', '*.lyt', 'Makefile', '*.c', '*.h', '*.yes', '*.sh']
     },
-    package_data={
-        '': ['*.dll', '*.dylib', '*.yes', '*.cfg', '*.lyt',
-             '*.c', '*.h', 'Makefile',],
-        },
     entry_points={
         "console_scripts": [
             "vivbin=vivisect.vivbin:main",
